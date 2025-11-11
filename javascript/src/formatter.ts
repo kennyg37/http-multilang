@@ -43,4 +43,9 @@ export class FormatResponse{
             return null
         }
     }
+
+    countBytes(body: string) {
+        const Length = body.length + 1
+        return Length
+    }
 }

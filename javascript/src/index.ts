@@ -1,9 +1,10 @@
 import net from 'node:net'
-import { FormatResponse } from './formatter'
+import { FormatResponse } from './formatter.js'
+import { RouteHandler, HttpMethod } from './route.handler.js'
 
 
-const createHeader = (statusCode: number, contentType: string, contentLength: number, body: any): string => {
-    return `HTTP/1.1 ${statusCode} OK\r\n` +
+const createHeader = (statusCode: number, message: string, contentType: string, contentLength: number, body: any): string => {
+    return `HTTP/1.1 ${statusCode} ${message}\r\n` +
            `Content-Type: ${contentType}\r\n` +
            `Content-Length: ${contentLength}\r\n` +
            `\r\n` +
@@ -22,11 +23,29 @@ const server = net.createServer((c) => {
         const data = parseData(e)
         
         const formatter = new FormatResponse(data)
-        
-        const method = formatter.getMethod()
         const path = formatter.getPath()
-        const protocol = formatter.getProtocol()
-        const httpHeader = createHeader(200, 'text/plain', 40, `you are ${method}ing at ${path} with ${protocol}`)
+
+        const routeHandler = new RouteHandler(path || '', (formatter.getMethod() || 'GET') as HttpMethod, {
+            paths: {
+                '/home': { method: 'GET', body: 'Welcome to the home page!' },
+                '/about': { method: 'GET', body: 'This is the about page.' }
+            }
+        })
+
+
+        const reqEval = routeHandler.evaluate()
+        const reqBody = routeHandler.routes.paths[`${path}`]?.body
+        let httpHeader;
+        let statusCode = 200
+        if(!reqEval) {
+            statusCode = 400
+            httpHeader =createHeader(statusCode, 'Not Found', 'text/plain', 10, "Not found")
+        } else if(reqEval && reqBody) {
+            httpHeader = createHeader(statusCode, 'OK', 'text/plain', formatter.countBytes(reqBody), `${reqBody}`)
+        } else {
+            httpHeader = createHeader(statusCode, 'OK', 'text/plain', 20, `${reqBody}`)
+        }
+
         c.write(httpHeader, ()=>{
             setTimeout(() => {
                 c.end()
@@ -50,14 +69,5 @@ const parseData = (data: Buffer) => {
     return resultArray
 }
 
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-class RouteHandler {
-  constructor(
-    private path: string,
-    private method: HttpMethod
-  ) {}
-
-  
-}
 
