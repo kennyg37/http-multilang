@@ -21,8 +21,12 @@ const server = net.createServer((c) => {
     
     c.on('data', (e) => {
         const data = parseData(e)
+
+        console.log(data)
+
+        let dataStore: Record<string, any> = {}
         
-        const formatter = new FormatResponse(data)
+        const formatter = new FormatResponse(data, dataStore)
         const path = formatter.getPath()
 
         const routeHandler = new RouteHandler(path || '', (formatter.getMethod() || 'GET') as HttpMethod, {
@@ -31,10 +35,13 @@ const server = net.createServer((c) => {
                 '/about': { method: 'GET', body: 'This is the about page.' }
             }
         })
-
+        
+        formatter.populateHeaders()
+        const browser = formatter.lookupValues("user-agent")
+        const host = formatter.lookupValues("host")
 
         const reqEval = routeHandler.evaluate()
-        const reqBody = routeHandler.routes.paths[`${path}`]?.body
+        const reqBody = routeHandler.routes.paths[`${path}`]?.body + ` your browser is ${browser} and the host is${host}`
         let httpHeader;
         let statusCode = 200
         if(!reqEval) {

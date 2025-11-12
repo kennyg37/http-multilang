@@ -1,6 +1,10 @@
 export class FormatResponse{
     private data: string[]
-    constructor(dataArr: string[]){this.data = dataArr}
+    private dataStore: Record<string, any> = {}
+    constructor(dataArr: string[], datastore: Record<string, any>){
+        this.data = dataArr, 
+        this.dataStore = datastore
+    }
 
     getReqParams(){
         const reqArr = this.data[0]
@@ -48,4 +52,39 @@ export class FormatResponse{
         const Length = body.length + 1
         return Length
     }
+
+    getHeaders(){
+        const headArr = this.data.slice(1)
+        return headArr
+    }
+
+    populateHeaders(){
+        const headers = this.getHeaders()
+        let key: string | undefined
+        let data: string[]
+        headers.forEach((item) => {
+            const splitItem = item.split(":")
+            key = splitItem[0]?.toLocaleLowerCase()
+            data = splitItem.slice(1)
+            if (splitItem && key) {
+                this.dataStore[key] = data
+                return
+            } else{
+                return "no data found"
+            }
+        })
+
+        return this.dataStore
+    }
+
+    lookupValues(value: string){
+        const store = this.dataStore
+        if (value in store) {
+            return store[value]
+        } else {
+            return " header does not exist" 
+        }
+
+    }
+    
 }
